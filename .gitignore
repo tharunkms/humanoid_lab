@@ -1,2 +1,7 @@
 __pycache__/
 *.pyc
+*.bak_step0
+
+# sam2_service
+sam2_service/venv/
+sam2_service/checkpoints/

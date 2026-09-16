@@ -1,0 +1,38 @@
+# Process B (sam2_service.py) -- isolated Python 3.10+ virtualenv/conda env.
+# Do NOT install this into the ROS1 Noetic container -- see README_SAM2_GUI.md
+# "Critical architecture decision".
+#
+# 1) Create + activate the env first:
+#      conda create -n sam2 python=3.10 -y && conda activate sam2
+#    or
+#      python3.10 -m venv ~/venvs/sam2 && source ~/venvs/sam2/bin/activate
+#
+# 2) Install a PyTorch build matching your host's CUDA version (check with
+#    `nvidia-smi`), e.g. for CUDA 12.1:
+#      pip install torch==2.3.1 torchvision --index-url https://download.pytorch.org/whl/cu121
+#    Then verify: python -c "import torch; print(torch.cuda.is_available(), torch.version.cuda)"
+#
+# 3) Install SAM2 itself, PINNED to a specific commit -- the video/streaming
+#    predictor API has changed across releases, and sam2_service.py's
+#    "TODO(confirm API)" call sites were written against the pattern in the
+#    facebookresearch/sam2 video_predictor_example notebook. Re-check that
+#    notebook against whatever commit you install and adjust sam2_service.py
+#    if needed:
+#      pip install "git+https://github.com/facebookresearch/sam2.git@<PIN_ME>"
+#
+#    If you need true frame-by-frame (no pre-extracted-frames-directory)
+#    streaming tracking, also look at community forks built specifically for
+#    this use case (e.g. camera/webcam predictor variants) -- confirm
+#    maintenance status before depending on one for the checkpoint deadline.
+#
+# 4) Download the checkpoint matching --checkpoint in sam2_service.py
+#    (tiny/small/base_plus/large) from the sam2 repo's checkpoints/ dir.
+
+pyzmq>=25,<26
+numpy>=1.20
+opencv-python>=4.8
+open_clip_torch>=2.24    # zero-shot object/shape classification (CLIP ViT-B/32, ~350MB download on first run)
+open3d>=0.18             # multi-view point cloud fusion (registration) + native interactive viewer
+matplotlib>=3.7          # renders the side-panel point cloud thumbnail (Agg backend, no GL context needed)
+# torch / sam2 intentionally NOT pinned here -- install per steps 2-3 above,
+# exact versions depend on your host's CUDA/driver combo.
