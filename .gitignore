@@ -1,3 +1,7 @@
+venv_sam/
+open_manipulator/
+segment-anything-2/
+unitree_ros/
 __pycache__/
 *.pyc
 *.bak_step0
