@@ -27,7 +27,7 @@ from robot_view_poser import (
     ARM_PATH, RIG_PATH, CAM_PRIM_NAME, CAMERA_LINK, ARM_IK_JOINTS, ARM_OTHER_JOINTS,
     CAM_MOUNT_XYZ, CAM_MOUNT_PITCH_DEG, ARM_SEEDS, W_DIR, REG_JOINT,
     POS_TOL_M, ANG_TOL_DEG,
-    _Tree, _T, _ry, _inv, _world, _write_worlds, _motion,
+    _Tree, _T, _ry, _inv, _world, _local, _write_worlds, _motion,
 )
 
 REG_ARM = np.array([REG_JOINT] * len(ARM_IK_JOINTS))
@@ -56,7 +56,7 @@ class ArmViewPoser:
         # bracket -- whatever mounts it in reality). Never moved by this class.
         self.base_world = _world(s.GetPrimAtPath(self.arm.root))
 
-        # camera rig / camera-in-link5 mount, same convention as RobotViewPoser
+        # camera rig / camera-in-link5 mount.
         rig = s.GetPrimAtPath(RIG_PATH)
         cam = s.GetPrimAtPath(f"{RIG_PATH}/{CAM_PRIM_NAME}")
         if not rig.IsValid() or not cam.IsValid():
@@ -64,21 +64,32 @@ class ArmViewPoser:
         self.rig_prim, self.cam_prim = rig, cam
         L_cam = _inv(_world(rig)) @ _world(cam)
         L_cam[:3, :3] /= np.linalg.norm(L_cam[:3, :3], axis=0)   # guard against leftover scale
-        f = L_cam[:3, :3] @ np.array([0, 0, -1.0])   # USD camera looks along -Z
-        u = L_cam[:3, :3] @ np.array([0, 1.0, 0])
-        Bs = np.column_stack([f, u, np.cross(f, u)])
-        x, z = np.array([1.0, 0, 0]), np.array([0, 0, 1.0])
-        Bt = np.column_stack([x, z, np.cross(x, z)])
-        R_m = _ry(math.radians(CAM_MOUNT_PITCH_DEG)) @ Bt @ Bs.T
-        t_m = np.array(CAM_MOUNT_XYZ, float) - R_m @ L_cam[:3, 3]
-        self.rig_in_link = _T(R_m, t_m)
+
+        # Physically mounted: the rig is a REAL child of link5 (see
+        # mount_arm_camera.py). Its local xformOp IS the mount -- read it
+        # straight from USD instead of the CAM_MOUNT_XYZ/PITCH guess, and
+        # skip re-writing the rig's world pose every frame in _apply(); USD's
+        # own parent/child inheritance carries it along whenever link5 moves.
+        self.physically_mounted = str(rig.GetParent().GetPath()) == self.cam_link
+        if self.physically_mounted:
+            self.rig_in_link = _local(rig)
+        else:
+            f = L_cam[:3, :3] @ np.array([0, 0, -1.0])   # USD camera looks along -Z
+            u = L_cam[:3, :3] @ np.array([0, 1.0, 0])
+            Bs = np.column_stack([f, u, np.cross(f, u)])
+            x, z = np.array([1.0, 0, 0]), np.array([0, 0, 1.0])
+            Bt = np.column_stack([x, z, np.cross(x, z)])
+            R_m = _ry(math.radians(CAM_MOUNT_PITCH_DEG)) @ Bt @ Bs.T
+            t_m = np.array(CAM_MOUNT_XYZ, float) - R_m @ L_cam[:3, 3]
+            self.rig_in_link = _T(R_m, t_m)
         self.cam_in_link = self.rig_in_link @ L_cam
 
         self.last = None
         if verbose:
             reach = sum(np.linalg.norm(j.J0[:3, 3]) for j in self.chain) + np.linalg.norm(CAM_MOUNT_XYZ)
+            mount = "physically mounted (USD child of link5)" if self.physically_mounted else "software mount (CAM_MOUNT_XYZ/PITCH placeholder)"
             print(f"[arm_view_poser] arm root {self.arm.root} @ z={self.base_world[2, 3]:.3f}  "
-                  f"camera link {self.cam_link}  chain={names}  rough reach {reach:.3f} m")
+                  f"camera link {self.cam_link}  chain={names}  rough reach {reach:.3f} m  [{mount}]")
 
     # ---------------------------------------------------------- kinematics --
     def _arm_q(self, q):
@@ -148,8 +159,13 @@ class ArmViewPoser:
     def _apply(self, q):
         W = dict(self.arm.fk(self.base_world, self._arm_q(q)))
         _write_worlds(self.stage, W)
-        rig_world = W[self.cam_link] @ self.rig_in_link
-        _write_worlds(self.stage, {RIG_PATH: rig_world})
+        if not self.physically_mounted:
+            # free-floating rig: still has to be moved by hand every solve.
+            # A real child of link5 (physically_mounted) rides along for
+            # free through USD's own parent/child inheritance -- writing it
+            # here too would just be redundant duplicate work.
+            rig_world = W[self.cam_link] @ self.rig_in_link
+            _write_worlds(self.stage, {RIG_PATH: rig_world})
         self.last = q.copy()
 
     def set_view(self, cam_pos, look_at):

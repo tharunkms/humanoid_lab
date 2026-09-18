@@ -59,8 +59,15 @@ import omni.replicator.core as rep
 from pxr import Gf, UsdGeom
 
 # ---- EDIT THESE ----------------------------------------------------------
-CAMERA_RGB_PATH = "/World/d435i_camera/Camera_RGB"
-CAMERA_DEPTH_PATH = "/World/d435i_camera/Camera_Depth"
+# RIG_PATH is the single source of truth for where the D435i rig prim lives.
+# If you run mount_camera_on_link5.py to physically parent it under the
+# OpenManipulator-X's link5, update RIG_PATH to the NEW_RIG_PATH it prints
+# (and keep robot_view_poser.py's RIG_PATH constant in sync, if you also use
+# the Go1+arm combined poser) -- CAMERA_RGB_PATH/CAMERA_DEPTH_PATH below and
+# every RIG_PATH-keyed constant elsewhere in this file follow automatically.
+RIG_PATH = "/World/d435i_camera"          # Xform that gets teleported (all sensor children move with it)
+CAMERA_RGB_PATH = f"{RIG_PATH}/Camera_RGB"
+CAMERA_DEPTH_PATH = f"{RIG_PATH}/Camera_Depth"
 ZMQ_ADDR = "tcp://131.220.7.222:5555"
 COMMAND_BIND = "tcp://*:5556"   # external entry point: other modules send inspect/status/abort here (ZeroMQ REP)
 SESSION_ROOT = os.path.expanduser("~/isaac_native_pc_sessions")
@@ -94,7 +101,6 @@ SHADOW_PLANAR_RMS_M = 0.005  # candidate counts as "flat" if its points fit a pl
 SHADOW_RING_DIST_M = 0.006   # ...and as a shadow if the surrounding ring is within 6 mm of that plane
 
 # ---- steps 3-5: teleport view planner (stand-ins for Go1 + OpenManipulator-X) ----
-RIG_PATH = "/World/d435i_camera"          # Xform that gets teleported (all sensor children move with it)
 TABLETOP_PATH = "/World/PropTable/Tabletop"  # Cylinder prim: gives table centre, radius, top height
 BODY_EDGE_CLEARANCE_M = 0.25   # Go1 body front stays this far outside the table edge
 ARM_FORWARD_REACH_M = 0.25     # camera can be this far in front of the body front in the approach pose
