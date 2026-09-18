@@ -387,6 +387,7 @@ class NativeSegmentGUI:
         self.belief = None          # VoxelBelief, created on the first capture of a session
         self.nbv_candidates = []    # candidate poses for next-best-view selection
         self.nbv_used = set()
+        self.nbv_enabled = NBV_ENABLED   # runtime toggle: NBV planner vs fixed preset plan
 
         self.rgb = None
         self.depth = None
@@ -451,6 +452,8 @@ class NativeSegmentGUI:
                         ui.Button("Return rig home", clicked_fn=self._return_rig_home)
                         ui.Button("Abort plan", clicked_fn=self._abort_plan)
                         ui.Button("Depth noise on/off", clicked_fn=self._toggle_noise)
+                    with ui.HStack(height=30, spacing=4):
+                        self.view_mode_button = ui.Button(self._view_mode_label(), clicked_fn=self._toggle_view_mode)
                     with ui.HStack(height=30, spacing=4):
                         ui.Button("Save belief", clicked_fn=self._save_belief)
                         ui.Button("View belief", clicked_fn=self._view_belief)
@@ -612,6 +615,19 @@ class NativeSegmentGUI:
         self._noise_key = None
         self.status_text = f"depth noise {'ON' if self.noise_cfg['enabled'] else 'OFF'} (severity {self.noise_cfg['severity']})"
         print(f"[noise] {self.status_text}")
+
+    # ---- view-plan mode: next-best-view vs fixed preset plan -----------
+    def _view_mode_label(self):
+        return f"View mode: {'Next-best-view' if self.nbv_enabled else 'Preset (fixed 4-pose)'}"
+
+    def _toggle_view_mode(self):
+        if self.plan_state is not None:
+            self.status_text = "cannot switch view mode while a plan is running -- abort it first"
+            return
+        self.nbv_enabled = not self.nbv_enabled
+        self.view_mode_button.text = self._view_mode_label()
+        self.status_text = f"view mode: {'next-best-view' if self.nbv_enabled else 'preset (fixed 4-pose)'}"
+        print(f"[nbv] {self.status_text}")
 
     def _render_frame(self):
         if self.rgb is None:
@@ -1113,8 +1129,8 @@ class NativeSegmentGUI:
               f"{self.capture_min_valid_frac:.0%} for this plan")
         self.nbv_used = set()
         self.nbv_yield = None       # learned per plan from verify measurements
-        self.nbv_candidates = self._nbv_candidates(self.plan_target, rig_xy) if NBV_ENABLED else []
-        if NBV_ENABLED:
+        self.nbv_candidates = self._nbv_candidates(self.plan_target, rig_xy) if self.nbv_enabled else []
+        if self.nbv_enabled:
             # First view still comes from the fixed rules: the belief is empty
             # at this point, so there is nothing to score against yet. Every
             # view after it is chosen from the belief.
@@ -1131,7 +1147,7 @@ class NativeSegmentGUI:
         self.plan_idx += 1
         # next-best-view: when the precomputed list runs out, pick the next
         # pose from the CURRENT belief rather than stopping.
-        if (NBV_ENABLED and self.plan_idx >= len(self.plan) and self.belief is not None
+        if (self.nbv_enabled and self.plan_idx >= len(self.plan) and self.belief is not None
                 and self.pose_count > 0 and len(self.plan) < NBV_MAX_VIEWS):
             try:
                 cand, gain, n_fr = self._nbv_pick()
