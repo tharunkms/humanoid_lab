@@ -66,6 +66,9 @@ COMMAND_BIND = "tcp://*:5556"   # external entry point: other modules send inspe
 SESSION_ROOT = os.path.expanduser("~/isaac_native_pc_sessions")
 WORLD_FRAME_PRIM = "/World"  # pose is reported relative to this prim
 IPC_COMMON_DIR = "/home/user/kamarajmagadapallt1/sam2_service"  # folder containing ipc_common.py
+ARM_SCRIPTS_DIR = "/home/user/kamarajmagadapallt1/Documents/lab-project-2026/isaac_sim_scripts"  # folder containing arm_view_poser.py / robot_view_poser.py
+ARM_POSER_ENABLED_DEFAULT = True   # drive the real OpenManipulator-X for "arm" (topdown/close) views;
+                                    # "body"/approach views keep the free-camera teleport (Go1 stand-in)
 
 # Depth annotator. "distance_to_image_plane" is the pinhole Z that the
 # reprojection math below (X = (u-cx)*z/fx) and the saved depth PNGs
@@ -151,6 +154,8 @@ PLAN_MIN_TARGET_TOL_M = 0.08   # re-seeded mask centroid must be within max(this
 
 if IPC_COMMON_DIR not in sys.path:
     sys.path.insert(0, IPC_COMMON_DIR)
+if ARM_SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, ARM_SCRIPTS_DIR)
 from depth_noise import apply_d435i_noise, DEFAULT_CFG as NOISE_DEFAULTS   # same folder as ipc_common.py
 from voxel_belief import VoxelBelief
 from ipc_common import (
@@ -389,6 +394,10 @@ class NativeSegmentGUI:
         self.nbv_used = set()
         self.nbv_enabled = NBV_ENABLED   # runtime toggle: NBV planner vs fixed preset plan
 
+        self.arm_poser_enabled = ARM_POSER_ENABLED_DEFAULT   # drive the real arm for "kind":"arm" views
+        self._arm_poser = None           # lazy ArmViewPoser -- built on first "arm" view, not at script load
+        self._arm_poser_error = None     # cached construction failure so we don't retry every frame
+
         self.rgb = None
         self.depth = None
         self.intrinsics = None
@@ -454,6 +463,7 @@ class NativeSegmentGUI:
                         ui.Button("Depth noise on/off", clicked_fn=self._toggle_noise)
                     with ui.HStack(height=30, spacing=4):
                         self.view_mode_button = ui.Button(self._view_mode_label(), clicked_fn=self._toggle_view_mode)
+                        self.arm_poser_button = ui.Button(self._arm_label(), clicked_fn=self._toggle_arm_poser)
                     with ui.HStack(height=30, spacing=4):
                         ui.Button("Save belief", clicked_fn=self._save_belief)
                         ui.Button("View belief", clicked_fn=self._view_belief)
@@ -628,6 +638,35 @@ class NativeSegmentGUI:
         self.view_mode_button.text = self._view_mode_label()
         self.status_text = f"view mode: {'next-best-view' if self.nbv_enabled else 'preset (fixed 4-pose)'}"
         print(f"[nbv] {self.status_text}")
+
+    # ---- OpenManipulator-X: drives "kind":"arm" (topdown/close) views only --
+    def _arm_label(self):
+        return f"Arm for close views: {'ON' if self.arm_poser_enabled else 'OFF'}"
+
+    def _toggle_arm_poser(self):
+        self.arm_poser_enabled = not self.arm_poser_enabled
+        self.arm_poser_button.text = self._arm_label()
+        self.status_text = f"arm-driven close views {'ON' if self.arm_poser_enabled else 'OFF (free camera for all views)'}"
+        print(f"[arm] {self.status_text}")
+
+    def _get_arm_poser(self):
+        """Build the ArmViewPoser on first use. Cached on success; cached as a
+        failure (with the reason) on error so a missing/incomplete arm in the
+        scene doesn't retry (and reprint the same error) on every 'arm' view."""
+        if self._arm_poser is not None:
+            return self._arm_poser
+        if self._arm_poser_error is not None:
+            return None
+        try:
+            from arm_view_poser import ArmViewPoser
+            self._arm_poser = ArmViewPoser(stage)
+            return self._arm_poser
+        except Exception as exc:
+            self._arm_poser_error = f"{type(exc).__name__}: {exc}"
+            print(f"[arm] ArmViewPoser unavailable ({self._arm_poser_error}) -- "
+                  f"'arm' views will use the free camera instead. Check that "
+                  f"/World/open_manipulator_x is in the scene with joint1..joint4 and link5.")
+            return None
 
     def _render_frame(self):
         if self.rgb is None:
@@ -1071,8 +1110,8 @@ class NativeSegmentGUI:
             body_front = edge_dist(az) + BODY_EDGE_CLEARANCE_M
             cam_dist = max(body_front - ARM_FORWARD_REACH_M, MIN_VIEW_DIST_M)
             xy = P[:2] + cam_dist * d
-            return {"name": name, "cam_pos": np.array([xy[0], xy[1], top_z + cam_h]), "look_at": P.copy(),
-                    "body_front_dist": body_front}
+            return {"name": name, "kind": "body", "cam_pos": np.array([xy[0], xy[1], top_z + cam_h]),
+                    "look_at": P.copy(), "body_front_dist": body_front}
 
         d0 = np.array([np.cos(az0), np.sin(az0)])
         body_front0 = edge_dist(az0) + BODY_EDGE_CLEARANCE_M
@@ -1080,7 +1119,7 @@ class NativeSegmentGUI:
         top_xy = P[:2] + top_off * d0
         plan = [
             body_view("approach", az0, APPROACH_CAM_HEIGHT_M),
-            {"name": "arm_topdown", "cam_pos": np.array([top_xy[0], top_xy[1], P[2] + TOPDOWN_HEIGHT_M]),
+            {"name": "arm_topdown", "kind": "arm", "cam_pos": np.array([top_xy[0], top_xy[1], P[2] + TOPDOWN_HEIGHT_M]),
              "look_at": P.copy(), "body_front_dist": body_front0},
             body_view("body_left", az0 + np.deg2rad(SIDE_AZIMUTH_DEG), SIDE_CAM_HEIGHT_M),
             body_view("body_right", az0 - np.deg2rad(SIDE_AZIMUTH_DEG), SIDE_CAM_HEIGHT_M),
@@ -1143,6 +1182,22 @@ class NativeSegmentGUI:
         self.plan_idx = -1
         self._advance_plan()
 
+    def _move_camera_for_view(self, v):
+        """Move the D435i for one plan view. 'kind':'arm' (topdown/close)
+        views drive the real OpenManipulator-X, when available and enabled;
+        everything else ('body'/'approach', the Go1-walk stand-in) uses the
+        free-camera teleport, same as before the arm was connected."""
+        if v.get("kind") == "arm" and self.arm_poser_enabled:
+            poser = self._get_arm_poser()
+            if poser is not None:
+                info = poser.set_view(v["cam_pos"], v["look_at"])
+                if not info["ok"]:
+                    print(f"[plan] '{v['name']}': arm reached pos_err={info['pos_err_m']*1000:.0f} mm "
+                          f"ang_err={info['ang_err_deg']:.1f} deg (outside tolerance) -- keeping this pose anyway; "
+                          f"the re-seed/capture gate below will reject the view if it's too far off")
+                return
+        teleport_rig_so_camera_is(usd_camera_lookat(v["cam_pos"], v["look_at"]))
+
     def _advance_plan(self):
         self.plan_idx += 1
         # next-best-view: when the precomputed list runs out, pick the next
@@ -1173,7 +1228,7 @@ class NativeSegmentGUI:
                         self.nbv_predicted = fr2[vis2]
                     except Exception:
                         self.nbv_predicted = None
-                    self.plan.append({"name": cand["name"], "cam_pos": cand["cam_pos"],
+                    self.plan.append({"name": cand["name"], "kind": cand["kind"], "cam_pos": cand["cam_pos"],
                                       "look_at": cand["look_at"], "body_front_dist": float("nan")})
             except Exception as exc:
                 print(f"[nbv] selection failed ({exc}) -- ending plan")
@@ -1192,7 +1247,7 @@ class NativeSegmentGUI:
         self.tracking_active = False
         self.mask = None
         try:
-            teleport_rig_so_camera_is(usd_camera_lookat(v["cam_pos"], v["look_at"]))
+            self._move_camera_for_view(v)
         except Exception as exc:
             self.status_text = f"teleport failed: {exc}"
             print(f"[plan] teleport failed on {v['name']}: {exc}")
