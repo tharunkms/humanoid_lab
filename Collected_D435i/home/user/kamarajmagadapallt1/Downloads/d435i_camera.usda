@@ -1,0 +1,125 @@
+#usda 1.0
+(
+    defaultPrim = "D435i"
+    metersPerUnit = 1
+    upAxis = "Z"
+)
+
+def Xform "D435i" (
+    "Intel RealSense D435i - origin = center of LEFT IR imager (Intel convention). +Y = out of lenses, +Z = up. Verify offsets against real-unit calibration."
+    prepend apiSchemas = ["PhysicsMassAPI", "PhysicsRigidBodyAPI"]
+)
+{
+    float physics:mass = 0.072
+    bool physics:rigidBodyEnabled = 1
+
+    def Xform "Geometry"
+    {
+        def Mesh "Body" (
+            prepend apiSchemas = ["PhysicsCollisionAPI"]
+        )
+        {
+            uniform bool doubleSided = 1
+            float3[] extent = [(-0.045, -0.0125, -0.0125), (0.045, 0.0125, 0.0125)]
+            int[] faceVertexCounts = [4, 4, 4, 4, 4, 4]
+            int[] faceVertexIndices = [0, 3, 2, 1, 4, 5, 6, 7, 0, 1, 5, 4, 1, 2, 6, 5, 2, 3, 7, 6, 3, 0, 4, 7]
+            uniform token orientation = "rightHanded"
+            point3f[] points = [(-0.045, -0.0125, -0.0125), (0.045, -0.0125, -0.0125), (0.045, 0.0125, -0.0125), (-0.045, 0.0125, -0.0125), (-0.045, -0.0125, 0.0125), (0.045, -0.0125, 0.0125), (0.045, 0.0125, 0.0125), (-0.045, 0.0125, 0.0125)]
+            color3f[] primvars:displayColor = [(0.05, 0.05, 0.05)]
+            uniform token subdivisionScheme = "none"
+            double3 xformOp:translate = (-0.025, -0.0125, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+        }
+
+        def Cylinder "RightIRLens"
+        {
+            uniform token axis = "Y"
+            double height = 0.003
+            color3f[] primvars:displayColor = [(0.02, 0.02, 0.02)]
+            double radius = 0.003
+            double3 xformOp:translate = (-0.05, 0.0015, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+        }
+
+        def Cylinder "RGBLens"
+        {
+            uniform token axis = "Y"
+            double height = 0.004
+            color3f[] primvars:displayColor = [(0.02, 0.02, 0.02)]
+            double radius = 0.006
+            double3 xformOp:translate = (-0.0325, 0.002, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+        }
+
+        def Cylinder "LeftIRLens"
+        {
+            uniform token axis = "Y"
+            double height = 0.003
+            color3f[] primvars:displayColor = [(0.02, 0.02, 0.02)]
+            double radius = 0.003
+            double3 xformOp:translate = (0, 0.0015, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+        }
+
+        def Cylinder "IMU_Dot"
+        {
+            uniform token axis = "Y"
+            double height = 0.001
+            color3f[] primvars:displayColor = [(0.01, 0.01, 0.01)]
+            double radius = 0.0015
+            double3 xformOp:translate = (0.014, 0.0005, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+        }
+    }
+
+    def Camera "Camera_Depth" (
+        displayName = "D435i Depth (left-imager frame)"
+    )
+    {
+        float2 clippingRange = (0.105, 10)
+        float focalLength = 1.93
+        float horizontalAperture = 3.6630032
+        token projection = "perspective"
+        float verticalAperture = 2.139633
+        float xformOp:rotateX = 90
+        double3 xformOp:translate = (0, 0, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateX"]
+    }
+
+    def Camera "Camera_IR_Right" (
+        displayName = "D435i Right IR imager"
+    )
+    {
+        float2 clippingRange = (0.105, 10)
+        float focalLength = 1.93
+        float horizontalAperture = 3.6630032
+        token projection = "perspective"
+        float verticalAperture = 2.139633
+        float xformOp:rotateX = 90
+        double3 xformOp:translate = (-0.05, 0, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateX"]
+    }
+
+    def Camera "Camera_RGB" (
+        displayName = "D435i RGB"
+    )
+    {
+        float2 clippingRange = (0.05, 20)
+        float focalLength = 1.93
+        float horizontalAperture = 2.6727908
+        token projection = "perspective"
+        float verticalAperture = 1.5010719
+        float xformOp:rotateX = 90
+        double3 xformOp:translate = (-0.0325, -0.0004, -0.0025)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateX"]
+    }
+
+    def Xform "IMU_Link" (
+        "Placeholder BMI055 IMU frame - approximate, not yet usable given your current motion-module/RGBD USB streaming conflict. Verify offset before Phase 4 VIO work."
+    )
+    {
+        double3 xformOp:translate = (0.014, 0.005, -0.002)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+    }
+}
+

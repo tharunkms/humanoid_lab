@@ -1,0 +1,71 @@
+{
+    "version": "1.0",
+    "file_records": [
+        {
+            "source_url": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/Isaac/Props/Rubiks_Cube/textures/RubikCube_AO.png",
+            "source_hash": "014646ae479dd5a5d08a60e032e614ef9ee1b5aa",
+            "target_url": "./omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/Isaac/Props/Rubiks_Cube/textures/RubikCube_AO.png",
+            "target_hash": "93ce763058dbf83203fcd8dbad77b289eee6ca4a"
+        },
+        {
+            "source_url": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/Isaac/Props/Rubiks_Cube/textures/RubikCube_Color.png",
+            "source_hash": "74423763a08892a9d88f8dd192cc879ee6345850",
+            "target_url": "./omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/Isaac/Props/Rubiks_Cube/textures/RubikCube_Color.png",
+            "target_hash": "91266e8b3eadcce56b4663d28d110aab167cae01"
+        },
+        {
+            "source_url": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/Isaac/Props/Rubiks_Cube/textures/RubikCube_Normal.png",
+            "source_hash": "ea8da8cf7a63f2d0da1aa6489c67fecfff0b53fe",
+            "target_url": "./omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/Isaac/Props/Rubiks_Cube/textures/RubikCube_Normal.png",
+            "target_hash": "16f298eb8af20d6b2207dfb79b232e455d47dd00"
+        },
+        {
+            "source_url": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/Isaac/Props/Rubiks_Cube/textures/RubikCube_Rough.png",
+            "source_hash": "e4c9ca7146b34a11539da5ee4a0b9cce866cdaef",
+            "target_url": "./omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/Isaac/Props/Rubiks_Cube/textures/RubikCube_Rough.png",
+            "target_hash": "2f8411f501d54f209fa0704f28a8fa1994a57c01"
+        },
+        {
+            "source_url": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/Isaac/Environments/Grid/Materials/Textures/WireframeBlur_basecolor.png",
+            "source_hash": "334f59bbf2768420132e1138e889ed4b46df68c5",
+            "target_url": "./omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/Isaac/Environments/Grid/Materials/Textures/WireframeBlur_basecolor.png",
+            "target_hash": "c4c9b54e976aca7c40c243f20e086d6446a3a539"
+        },
+        {
+            "source_url": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/Isaac/Environments/Grid/Materials/Textures/WireframeBlur_blue.png",
+            "source_hash": "99922df2035a3c33aa242908bdc7332675e728d2",
+            "target_url": "./omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/Isaac/Environments/Grid/Materials/Textures/WireframeBlur_blue.png",
+            "target_hash": "5f8f010e6cd67aafa939f60a3834cf9bb823651d"
+        },
+        {
+            "source_url": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/Isaac/Environments/Grid/Materials/Textures/Wireframe_blue.png",
+            "source_hash": "d3618b28226361a4144928dcbf5ec5ad1a594766",
+            "target_url": "./omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/Isaac/Environments/Grid/Materials/Textures/Wireframe_blue.png",
+            "target_hash": "798994e757315348177542c014ab6e13b339300a"
+        },
+        {
+            "source_url": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/Isaac/Props/Camera/checkerboard_6x10.png",
+            "source_hash": "abbd7850caa767d449c044e4f923d6693df6967e",
+            "target_url": "./omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/Isaac/Props/Camera/checkerboard_6x10.png",
+            "target_hash": "cab3b426dd695e3942b5d71c718509d58dd75233"
+        },
+        {
+            "source_url": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/Isaac/Props/Mugs/texture/T_Mug_A2_Albedo.png",
+            "source_hash": "ed78526638fbf78adb139bf53af276e849a2bdb2",
+            "target_url": "./omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/Isaac/Props/Mugs/texture/T_Mug_A2_Albedo.png",
+            "target_hash": "4dec2d6dc9eda60584208a704e89b07b8db82906"
+        },
+        {
+            "source_url": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/Isaac/Props/Mugs/texture/T_Mug_A2_Normal.png",
+            "source_hash": "4231339f98a9d08382fc98caca7ea282ce4ffe50",
+            "target_url": "./omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/Isaac/Props/Mugs/texture/T_Mug_A2_Normal.png",
+            "target_hash": "80f7303834994f6a9e974a7846046a3d2800602e"
+        },
+        {
+            "source_url": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/Isaac/Props/Mugs/texture/T_Mug_A2_ORM.png",
+            "source_hash": "5b8fafbc20a2fc6e932acb7a0eeb3a9f79b2d998",
+            "target_url": "./omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/Isaac/Props/Mugs/texture/T_Mug_A2_ORM.png",
+            "target_hash": "473f67ef264816860e27df64acb9040373b3c009"
+        }
+    ]
+}
