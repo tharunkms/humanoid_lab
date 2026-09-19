@@ -1,0 +1,97 @@
+<launch>
+  <!-- Arguments -->
+  <arg name="scan_topic"     default="scan"/>
+  <!-- Gravity-aligned ground frame: the Go1's trunk pitches/rolls as it walks,
+       which smears the flattened scan if projected into base_link. -->
+  <arg name="base_frame"     default="base_link"/>
+  <arg name="odom_frame"     default="odom"/>
+  <arg name="map_frame"      default="map"/>
+  <arg name="open_rviz"      default="true"/>
+
+  <!-- Use Simulation Time (crucial for Isaac Sim) -->
+  <param name="/use_sim_time" value="true"/>
+
+  <!-- Flattens the trunk-mounted 3D lidar into a level 2D scan -->
+  <!-- Commented out because we fully migrated to base_link and this causes a TF collision -->
+  <!--
+  <node pkg="my_navigation" type="base_footprint_publisher.py" name="base_footprint_publisher" output="screen">
+    <param name="odom_frame" value="$(arg odom_frame)"/>
+    <param name="base_frame" value="base_link"/>
+    <param name="footprint_frame" value="$(arg base_frame)"/>
+  </node>
+  -->
+
+  <node pkg="pointcloud_to_laserscan" type="pointcloud_to_laserscan_node" name="pointcloud_to_laserscan">
+    <remap from="cloud_in" to="/point_cloud"/>
+    <remap from="scan" to="$(arg scan_topic)"/>
+    <param name="target_frame" value="$(arg base_frame)"/>
+    <param name="range_min" value="0.45"/>
+    <param name="range_max" value="30.0"/>
+    
+    <!-- Vertical squash range relative to base_link -->
+    <!-- Go1 base_link is elevated, so we must look down (negative Z) to see short tables -->
+    <param name="min_height" value="-0.4"/> 
+    <param name="max_height" value="0.5"/>
+    <!-- Default 1 deg leaves unscanned gaps between beams that never clear to free. -->
+    <param name="angle_increment" value="0.004363"/>
+  </node>
+
+  <!-- Gmapping -->
+  <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" output="screen">
+    <param name="base_frame" value="$(arg base_frame)"/>
+    <param name="odom_frame" value="$(arg odom_frame)"/>
+    <param name="map_frame"  value="$(arg map_frame)"/>
+    <remap from="scan"       to="$(arg scan_topic)"/>
+
+    <!-- Map updating parameters -->
+    <param name="map_update_interval" value="2.0"/>
+    <param name="maxUrange" value="11.5"/>
+    <param name="sigma" value="0.05"/>
+    <param name="kernelSize" value="1"/>
+    <param name="lstep" value="0.05"/>
+    <param name="astep" value="0.05"/>
+    <param name="iterations" value="5"/>
+    <param name="lsigma" value="0.075"/>
+    <param name="ogain" value="3.0"/>
+    <param name="lskip" value="0"/>
+    <param name="minimumScore" value="50"/>
+    <param name="srr" value="0.1"/>
+    <param name="srt" value="0.2"/>
+    <param name="str" value="0.1"/>
+    <param name="stt" value="0.2"/>
+    
+    <!-- Process scan every 'linearUpdate' meters or 'angularUpdate' rads -->
+    <param name="linearUpdate" value="1.0"/>
+    <param name="angularUpdate" value="0.2"/>
+    <param name="temporalUpdate" value="5.0"/>
+    <param name="resampleThreshold" value="0.5"/>
+    <param name="particles" value="30"/>
+
+    <!-- Map boundaries and resolution -->
+    <param name="xmin" value="-20.0"/>
+    <param name="ymin" value="-20.0"/>
+    <param name="xmax" value="20.0"/>
+    <param name="ymax" value="20.0"/>
+    <param name="delta" value="0.05"/>
+    <param name="llsamplerange" value="0.01"/>
+    <param name="llsamplestep" value="0.01"/>
+    <param name="lasamplerange" value="0.005"/>
+    <param name="lasamplestep" value="0.005"/>
+  </node>
+
+  <!-- Move Base -->
+  <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
+    <rosparam file="$(find my_navigation)/param/costmap_common_params.yaml" command="load" ns="global_costmap" />
+    <rosparam file="$(find my_navigation)/param/costmap_common_params.yaml" command="load" ns="local_costmap" />
+    <rosparam file="$(find my_navigation)/param/local_costmap_params.yaml" command="load" />
+    <rosparam file="$(find my_navigation)/param/global_costmap_params.yaml" command="load" />
+    <rosparam file="$(find my_navigation)/param/move_base_params.yaml" command="load" />
+    <remap from="cmd_vel" to="/move_base/cmd_vel"/> <!-- Remap so it doesn't conflict with MPC -->
+  </node>
+
+  <!-- RViz -->
+  <group if="$(arg open_rviz)"> 
+    <node pkg="rviz" type="rviz" name="rviz" required="true"
+          args="-d $(find my_navigation)/rviz/slam.rviz"/>
+  </group>
+</launch>

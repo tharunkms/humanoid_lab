@@ -1,0 +1,24 @@
+services:
+  ros_dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        UID: ${UID:-1000}
+        GID: ${GID:-1000}
+    image: ros_noetic_nav:latest
+    container_name: ros_nav_container
+    network_mode: "host"
+    environment:
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+      - ROS_MASTER_URI=http://localhost:11311
+      - ROS_IP=127.0.0.1
+    volumes:
+      - ./:/home/ros_user/ws
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      # This allows X11 forwarding for RViz
+      - ${HOME}/.Xauthority:/home/ros_user/.Xauthority:rw
+    # Keep the container running interactively
+    tty: true
+    stdin_open: true
